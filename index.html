@@ -28,7 +28,6 @@
         .bus-icon { font-size: 24px; }
         select { padding: 6px 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
 
-        /* Arrivals panel */
         #arrivals-panel {
             padding: 20px; background: #f8f9fa; border-top: 3px solid #0077cc;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -69,7 +68,6 @@
     <div class="status" id="status">Loading real-time buses...</div>
     <div id="map"></div>
 
-    <!-- Next Buses at Stop -->
     <div id="arrivals-panel">
         <div class="arrivals-card">
             <div class="arrivals-header">🕒 Next Buses at Stop</div>
@@ -84,7 +82,7 @@
     <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
     <script>
-        // ==================== MAP CODE ====================
+        // ==================== MAP CODE (unchanged) ====================
         const map = L.map('map').setView([44.65, -63.58], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors | Halifax Transit data'
@@ -171,7 +169,7 @@
         setInterval(loadLiveBuses, 20000);
         map.on('click', loadLiveBuses);
 
-        // ==================== NEXT ARRIVALS BY STOP (with predicted + scheduled leave) ====================
+        // ==================== NEXT ARRIVALS - NO DUPLICATES + NEVER EARLY ====================
         async function getNextArrivals() {
             const stopInput = document.getElementById('stopInput').value.trim();
             const resultsDiv = document.getElementById('arrivals-results');
@@ -193,6 +191,7 @@
                 const pbf = new Pbf(new Uint8Array(arrayBuffer));
                 const feed = FeedMessage.read(pbf);
 
+                const seen = new Map(); // deduplication key: route-bus
                 let arrivals = [];
 
                 feed.entity.forEach(entity => {
@@ -200,20 +199,27 @@
                         const trip = entity.trip_update.trip;
                         const vehicle = entity.trip_update.vehicle || {};
                         const busNumber = vehicle.label || vehicle.id || '—';
+                        const routeId = trip.routeId || trip.route_id || '—';
+
+                        const key = `${routeId}-${busNumber}`;
 
                         entity.trip_update.stop_time_update.forEach(stopUpdate => {
                             if (String(stopUpdate.stop_id) === stopInput) {
                                 const departureEvent = stopUpdate.departure || stopUpdate.arrival;
                                 if (departureEvent && departureEvent.time !== undefined) {
-                                    const predictedUnix = departureEvent.time;
+                                    let predictedUnix = departureEvent.time;
                                     const delaySeconds = departureEvent.delay !== undefined ? departureEvent.delay : 0;
-
                                     const scheduledUnix = predictedUnix - delaySeconds;
+
+                                    // NEVER PREDICT EARLY: clamp predicted time
+                                    if (predictedUnix < scheduledUnix) {
+                                        predictedUnix = scheduledUnix;
+                                    }
 
                                     const minutesAway = Math.round((predictedUnix * 1000 - Date.now()) / 60000);
 
-                                    if (minutesAway >= 0) {
-                                        const routeId = trip.routeId || trip.route_id || '—';
+                                    if (minutesAway >= 0 && !seen.has(key)) {
+                                        seen.set(key, true);
                                         arrivals.push({
                                             route: routeId,
                                             bus: busNumber,
@@ -246,7 +252,7 @@
                                     <div><span class="time-label">Predicted leave:</span> <strong>${predTime}</strong> (${arr.minutes} min)</div>
                                     <div><span class="time-label">Scheduled leave:</span> <strong>${schedTime}</strong></div>
                                 </div>
-                                ${delayMin !== 0 ? `<small style="color:${delayMin > 0 ? '#d32f2f' : '#388e3c'};">${delayMin > 0 ? '▲ ' + delayMin + ' min late' : '▼ ' + Math.abs(delayMin) + ' min early'}</small>` : '<small style="color:#388e3c;">On time</small>'}
+                                ${delayMin > 0 ? `<small style="color:#d32f2f;">▲ ${delayMin} min late</small>` : '<small style="color:#388e3c;">On time</small>'}
                             </div>`;
                     });
                     resultsDiv.innerHTML = html;
@@ -257,7 +263,6 @@
             }
         }
 
-        // Enter key support
         document.getElementById('stopInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') getNextArrivals();
         });
