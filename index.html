@@ -14,16 +14,31 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 20px; font-weight: bold;
             display: flex; align-items: center; gap: 10px;
         }
+        .filter {
+            position: absolute; top: 70px; left: 10px; z-index: 1000;
+            background: white; padding: 10px 14px; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
         .status {
             position: absolute; top: 10px; right: 10px; z-index: 1000;
             background: white; padding: 8px 14px; border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 14px;
         }
         .bus-icon { font-size: 24px; }
+        select { padding: 6px 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
     </style>
 </head>
 <body>
     <div class="header">🚏 Halifax Transit Live Map • <span id="count">0</span> buses on the road</div>
+    
+    <div class="filter">
+        <label for="routeFilter"><strong>Filter by Route:</strong></label>
+        <select id="routeFilter">
+            <option value="all">All Routes</option>
+        </select>
+    </div>
+
     <div class="status" id="status">Loading real-time buses...</div>
     <div id="map"></div>
 
@@ -38,6 +53,15 @@
         }).addTo(map);
 
         const busLayer = L.layerGroup().addTo(map);
+        let currentFilter = 'all';
+
+        const routeSelect = document.getElementById('routeFilter');
+
+        // Update filter when user selects a route
+        routeSelect.addEventListener('change', () => {
+            currentFilter = routeSelect.value;
+            loadLiveBuses(); // re-render with new filter
+        });
 
         async function loadLiveBuses() {
             const statusEl = document.getElementById('status');
@@ -51,21 +75,31 @@
                 if (!response.ok) throw new Error('Feed not available');
 
                 const arrayBuffer = await response.arrayBuffer();
-
                 const pbf = new Pbf(new Uint8Array(arrayBuffer));
                 const feed = FeedMessage.read(pbf);
 
                 busLayer.clearLayers();
+
                 let count = 0;
+                const routesSeen = new Set();
 
                 feed.entity.forEach(entity => {
                     if (entity.vehicle && entity.vehicle.position) {
                         const pos = entity.vehicle.position;
                         const vehiclePos = entity.vehicle;
 
-                        // Correct path: the real bus number is inside vehicle.vehicle.label
                         const descriptor = vehiclePos.vehicle || {};
                         const busNumber = descriptor.label || descriptor.id || 'Unknown';
+
+                        const routeId = vehiclePos.trip ? vehiclePos.trip.routeId : null;
+
+                        // Collect unique routes for dropdown
+                        if (routeId) routesSeen.add(routeId);
+
+                        // Apply filter
+                        if (currentFilter !== 'all' && routeId !== currentFilter) {
+                            return; // skip this bus
+                        }
 
                         const busIcon = L.divIcon({
                             className: 'bus-icon',
@@ -77,7 +111,7 @@
                         const marker = L.marker([pos.latitude, pos.longitude], { icon: busIcon }).addTo(busLayer);
 
                         let popupHTML = `<b>Bus ${busNumber}</b>`;
-                        if (vehiclePos.trip && vehiclePos.trip.routeId) popupHTML += `<br>Route: ${vehiclePos.trip.routeId}`;
+                        if (routeId) popupHTML += `<br>Route: ${routeId}`;
                         if (vehiclePos.trip && vehiclePos.trip.tripId) popupHTML += `<br>Trip: ${vehiclePos.trip.tripId}`;
                         if (pos.speed !== undefined) popupHTML += `<br>Speed: ${(pos.speed * 3.6).toFixed(0)} km/h`;
                         marker.bindPopup(popupHTML);
@@ -85,6 +119,23 @@
                         count++;
                     }
                 });
+
+                // Populate dropdown with all seen routes (sorted)
+                const currentOptions = Array.from(routeSelect.options).map(opt => opt.value);
+                const newRoutes = Array.from(routesSeen).sort((a, b) => {
+                    return parseInt(a) - parseInt(b) || a.localeCompare(b);
+                });
+
+                // Only rebuild if routes changed (keeps selection intact)
+                if (JSON.stringify(currentOptions.slice(1)) !== JSON.stringify(newRoutes)) {
+                    routeSelect.innerHTML = '<option value="all">All Routes</option>';
+                    newRoutes.forEach(route => {
+                        const opt = document.createElement('option');
+                        opt.value = route;
+                        opt.textContent = `Route ${route}`;
+                        routeSelect.appendChild(opt);
+                    });
+                }
 
                 document.getElementById('count').textContent = count;
                 const now = new Date();
