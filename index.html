@@ -44,7 +44,6 @@
             statusEl.textContent = 'Fetching live buses...';
 
             try {
-                // More reliable CORS proxy
                 const feedUrl = 'https://api.allorigins.win/raw?url=' + 
                     encodeURIComponent('https://gtfs.halifax.ca/realtime/Vehicle/VehiclePositions.pb');
 
@@ -64,6 +63,9 @@
                         const pos = entity.vehicle.position;
                         const vehicle = entity.vehicle;
 
+                        // Use the actual bus number painted on the side (vehicle.label)
+                        const busNumber = vehicle.label || vehicle.id || 'Unknown';
+
                         const busIcon = L.divIcon({
                             className: 'bus-icon',
                             html: '🚌',
@@ -73,7 +75,7 @@
 
                         const marker = L.marker([pos.latitude, pos.longitude], { icon: busIcon }).addTo(busLayer);
 
-                        let popupHTML = `<b>Bus ${vehicle.vehicle?.id || 'Unknown'}</b>`;
+                        let popupHTML = `<b>Bus ${busNumber}</b>`;
                         if (vehicle.trip && vehicle.trip.routeId) popupHTML += `<br>Route: ${vehicle.trip.routeId}`;
                         if (vehicle.trip && vehicle.trip.tripId) popupHTML += `<br>Trip: ${vehicle.trip.tripId}`;
                         if (pos.speed !== undefined) popupHTML += `<br>Speed: ${(pos.speed * 3.6).toFixed(0)} km/h`;
