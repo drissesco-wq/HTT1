@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin:0; padding:0; font-family: Arial, sans-serif; }
-        #map { height: 100vh; width: 100%; }
+        #map { height: 65vh; width: 100%; }
         .header {
             position: absolute; top: 10px; left: 10px; z-index: 1000;
             background: white; padding: 12px 18px; border-radius: 12px;
@@ -27,6 +27,31 @@
         }
         .bus-icon { font-size: 24px; }
         select { padding: 6px 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+
+        /* New arrivals panel */
+        #arrivals-panel {
+            padding: 20px; background: #f8f9fa; border-top: 3px solid #0077cc;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .arrivals-card {
+            max-width: 800px; margin: 0 auto; background: white;
+            border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .arrivals-header { font-size: 22px; font-weight: bold; margin-bottom: 15px; }
+        input[type="text"] {
+            padding: 12px; font-size: 18px; border: 2px solid #ccc; border-radius: 8px; width: 220px;
+        }
+        button {
+            padding: 12px 24px; font-size: 18px; background: #0077cc; color: white;
+            border: none; border-radius: 8px; cursor: pointer;
+        }
+        button:hover { background: #005fa3; }
+        .results { margin-top: 20px; }
+        .result-item {
+            padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;
+        }
+        .result-item:last-child { border-bottom: none; }
+        .no-results { color: #666; font-style: italic; }
     </style>
 </head>
 <body>
@@ -42,11 +67,22 @@
     <div class="status" id="status">Loading real-time buses...</div>
     <div id="map"></div>
 
+    <!-- NEW: Next Buses at Stop section -->
+    <div id="arrivals-panel">
+        <div class="arrivals-card">
+            <div class="arrivals-header">🕒 Next Buses at Stop</div>
+            <input id="stopInput" type="text" placeholder="Enter stop number (e.g. 3589)" />
+            <button onclick="getNextArrivals()">Get Arrivals</button>
+            <div id="arrivals-results" class="results"></div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/pbf@3.0.5/dist/pbf.js"></script>
     <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
     <script>
+        // ==================== MAP CODE (unchanged) ====================
         const map = L.map('map').setView([44.65, -63.58], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors | Halifax Transit data'
@@ -54,10 +90,8 @@
 
         const busLayer = L.layerGroup().addTo(map);
         let currentFilter = 'all';
-
         const routeSelect = document.getElementById('routeFilter');
 
-        // Cleaned official Halifax Transit routes (May 2026)
         const fallbackRoutes = ["1","2","3","4","5","8","21","22","24","25","26","28","29","39","50","53","54","55","56","58","59","61","62","63","64","65","67","68","72","82","83","84","85","86","87","88","90","91","93","123","127","135","136","137","138","158","159","161","165","182","183","185","186","192","194","196","320","330","370","401","415","433","51A","51B","168A","168B"];
 
         routeSelect.addEventListener('change', () => {
@@ -77,26 +111,20 @@
             });
             if (sorted.includes(selected) || selected === 'all') routeSelect.value = selected;
         }
-
         populateDropdown(fallbackRoutes);
 
         async function loadLiveBuses() {
             const statusEl = document.getElementById('status');
             statusEl.textContent = 'Fetching live buses...';
-
             try {
-                const feedUrl = 'https://api.allorigins.win/raw?url=' + 
-                    encodeURIComponent('https://gtfs.halifax.ca/realtime/Vehicle/VehiclePositions.pb');
-
+                const feedUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://gtfs.halifax.ca/realtime/Vehicle/VehiclePositions.pb');
                 const response = await fetch(feedUrl);
                 if (!response.ok) throw new Error('Feed not available');
-
                 const arrayBuffer = await response.arrayBuffer();
                 const pbf = new Pbf(new Uint8Array(arrayBuffer));
                 const feed = FeedMessage.read(pbf);
 
                 busLayer.clearLayers();
-
                 let count = 0;
                 const liveRoutes = new Set();
 
@@ -104,7 +132,6 @@
                     if (entity.vehicle && entity.vehicle.position) {
                         const pos = entity.vehicle.position;
                         const vehiclePos = entity.vehicle;
-
                         const descriptor = vehiclePos.vehicle || {};
                         const busNumber = descriptor.label || descriptor.id || 'Unknown';
 
@@ -113,16 +140,13 @@
                             routeId = vehiclePos.trip.routeId || vehiclePos.trip.route_id || 
                                      (vehiclePos.trip.tripId ? vehiclePos.trip.tripId.split('-')[0] : null);
                         }
-
                         if (routeId) liveRoutes.add(String(routeId));
 
                         if (currentFilter !== 'all' && String(routeId) !== currentFilter) return;
 
                         const busIcon = L.divIcon({ className: 'bus-icon', html: '🚌', iconSize: [30, 30], iconAnchor: [15, 15] });
-
                         const marker = L.marker([pos.latitude, pos.longitude], { icon: busIcon }).addTo(busLayer);
 
-                        // SPEED LINE REMOVED
                         let popupHTML = `<b>Bus ${busNumber}</b>`;
                         if (routeId) popupHTML += `<br>Route: ${routeId}`;
                         if (vehiclePos.trip && vehiclePos.trip.tripId) popupHTML += `<br>Trip: ${vehiclePos.trip.tripId}`;
@@ -138,7 +162,6 @@
                 document.getElementById('count').textContent = count;
                 const now = new Date();
                 statusEl.innerHTML = `✅ Updated just now<br><small>${now.toLocaleTimeString('en-CA')}</small>`;
-
             } catch (error) {
                 console.error("Bus fetch error:", error);
                 statusEl.textContent = '❌ Could not load buses — tap map to retry';
@@ -148,6 +171,84 @@
         loadLiveBuses();
         setInterval(loadLiveBuses, 20000);
         map.on('click', loadLiveBuses);
+
+        // ==================== NEW: NEXT ARRIVALS BY STOP ====================
+        async function getNextArrivals() {
+            const stopInput = document.getElementById('stopInput').value.trim();
+            const resultsDiv = document.getElementById('arrivals-results');
+            resultsDiv.innerHTML = '<p style="color:#0077cc;">Fetching predictions...</p>';
+
+            if (!stopInput) {
+                resultsDiv.innerHTML = '<p class="no-results">Please enter a stop number</p>';
+                return;
+            }
+
+            try {
+                const feedUrl = 'https://api.allorigins.win/raw?url=' + 
+                    encodeURIComponent('https://gtfs.halifax.ca/realtime/TripUpdate/TripUpdates.pb');
+
+                const response = await fetch(feedUrl);
+                if (!response.ok) throw new Error('Feed not available');
+
+                const arrayBuffer = await response.arrayBuffer();
+                const pbf = new Pbf(new Uint8Array(arrayBuffer));
+                const feed = FeedMessage.read(pbf);
+
+                let arrivals = [];
+
+                feed.entity.forEach(entity => {
+                    if (entity.trip_update && entity.trip_update.stop_time_update) {
+                        const trip = entity.trip_update.trip;
+                        const vehicle = entity.trip_update.vehicle || {};
+                        const busNumber = vehicle.label || vehicle.id || '—';
+
+                        entity.trip_update.stop_time_update.forEach(stopUpdate => {
+                            if (String(stopUpdate.stop_id) === stopInput) {
+                                const arrivalTime = stopUpdate.arrival ? stopUpdate.arrival.time : 
+                                                  (stopUpdate.departure ? stopUpdate.departure.time : null);
+                                if (arrivalTime) {
+                                    const minutesAway = Math.round((arrivalTime * 1000 - Date.now()) / 60000);
+                                    if (minutesAway >= 0) {
+                                        const routeId = trip.routeId || trip.route_id || '—';
+                                        arrivals.push({
+                                            route: routeId,
+                                            bus: busNumber,
+                                            minutes: minutesAway,
+                                            time: new Date(arrivalTime * 1000).toLocaleTimeString('en-CA', {hour:'numeric', minute:'2-digit'})
+                                        });
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+
+                // Sort by soonest first
+                arrivals.sort((a, b) => a.minutes - b.minutes);
+
+                if (arrivals.length === 0) {
+                    resultsDiv.innerHTML = `<p class="no-results">No upcoming buses found for stop <strong>${stopInput}</strong> right now.</p>`;
+                } else {
+                    let html = `<p><strong>Stop ${stopInput}</strong> — ${arrivals.length} upcoming bus(es)</p>`;
+                    arrivals.forEach(arr => {
+                        html += `
+                            <div class="result-item">
+                                <div><strong>Route ${arr.route}</strong> • Bus ${arr.bus}</div>
+                                <div><strong>${arr.minutes} min</strong> <small>(${arr.time})</small></div>
+                            </div>`;
+                    });
+                    resultsDiv.innerHTML = html;
+                }
+            } catch (error) {
+                console.error(error);
+                resultsDiv.innerHTML = `<p style="color:red;">❌ Could not load arrivals. Try again in a moment.</p>`;
+            }
+        }
+
+        // Allow pressing Enter in the input field
+        document.getElementById('stopInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') getNextArrivals();
+        });
     </script>
 </body>
 </html>
