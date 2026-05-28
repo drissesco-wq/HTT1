@@ -27,40 +27,36 @@
     <div class="status" id="status">Loading real-time buses...</div>
     <div id="map"></div>
 
-    <!-- Required libraries -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/pbf@3.0.5/dist/pbf.js"></script>
     <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
     <script>
-        // Initialize map centered on Halifax
         const map = L.map('map').setView([44.65, -63.58], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors | Halifax Transit data'
         }).addTo(map);
 
-        // Layer for bus markers
         const busLayer = L.layerGroup().addTo(map);
-
-        let lastUpdate = null;
 
         async function loadLiveBuses() {
             const statusEl = document.getElementById('status');
             statusEl.textContent = 'Fetching live buses...';
 
             try {
-                // CORS proxy (required because Halifax feed blocks direct browser access)
-                const feedUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://gtfs.halifax.ca/realtime/Vehicle/VehiclePositions.pb');
+                // More reliable CORS proxy
+                const feedUrl = 'https://api.allorigins.win/raw?url=' + 
+                    encodeURIComponent('https://gtfs.halifax.ca/realtime/Vehicle/VehiclePositions.pb');
+
                 const response = await fetch(feedUrl);
+                if (!response.ok) throw new Error('Feed not available');
+
                 const arrayBuffer = await response.arrayBuffer();
 
-                // Decode GTFS-RT protobuf
                 const pbf = new Pbf(new Uint8Array(arrayBuffer));
                 const feed = FeedMessage.read(pbf);
 
-                // Clear old markers
                 busLayer.clearLayers();
-
                 let count = 0;
 
                 feed.entity.forEach(entity => {
@@ -68,7 +64,6 @@
                         const pos = entity.vehicle.position;
                         const vehicle = entity.vehicle;
 
-                        // Bus icon with emoji
                         const busIcon = L.divIcon({
                             className: 'bus-icon',
                             html: '🚌',
@@ -78,41 +73,31 @@
 
                         const marker = L.marker([pos.latitude, pos.longitude], { icon: busIcon }).addTo(busLayer);
 
-                        // Nice popup
                         let popupHTML = `<b>Bus ${vehicle.vehicle?.id || 'Unknown'}</b>`;
-                        if (vehicle.trip && vehicle.trip.routeId) {
-                            popupHTML += `<br>Route: ${vehicle.trip.routeId}`;
-                        }
-                        if (vehicle.trip && vehicle.trip.tripId) {
-                            popupHTML += `<br>Trip: ${vehicle.trip.tripId}`;
-                        }
-                        if (pos.speed !== undefined) {
-                            popupHTML += `<br>Speed: ${(pos.speed * 3.6).toFixed(0)} km/h`;
-                        }
+                        if (vehicle.trip && vehicle.trip.routeId) popupHTML += `<br>Route: ${vehicle.trip.routeId}`;
+                        if (vehicle.trip && vehicle.trip.tripId) popupHTML += `<br>Trip: ${vehicle.trip.tripId}`;
+                        if (pos.speed !== undefined) popupHTML += `<br>Speed: ${(pos.speed * 3.6).toFixed(0)} km/h`;
                         marker.bindPopup(popupHTML);
 
                         count++;
                     }
                 });
 
-                // Update header count
                 document.getElementById('count').textContent = count;
-
-                // Update status
-                lastUpdate = new Date();
-                statusEl.innerHTML = `✅ Updated just now<br><small>${lastUpdate.toLocaleTimeString('en-CA')}</small>`;
+                const now = new Date();
+                statusEl.innerHTML = `✅ Updated just now<br><small>${now.toLocaleTimeString('en-CA')}</small>`;
 
             } catch (error) {
-                console.error(error);
-                statusEl.textContent = '❌ Error loading buses (try refreshing)';
+                console.error("Bus fetch error:", error);
+                statusEl.textContent = '❌ Could not load buses — tap map to retry';
             }
         }
 
-        // Load immediately + auto-refresh every 20 seconds
+        // Load immediately + every 20 seconds
         loadLiveBuses();
         setInterval(loadLiveBuses, 20000);
 
-        // Bonus: Click anywhere on map to manually refresh
+        // Click map to manually refresh
         map.on('click', loadLiveBuses);
     </script>
 </body>
