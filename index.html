@@ -61,10 +61,11 @@
                 feed.entity.forEach(entity => {
                     if (entity.vehicle && entity.vehicle.position) {
                         const pos = entity.vehicle.position;
-                        const vehicle = entity.vehicle;
+                        const vehiclePos = entity.vehicle;
 
-                        // Use the actual bus number painted on the side (vehicle.label)
-                        const busNumber = vehicle.label || vehicle.id || 'Unknown';
+                        // Correct path: the real bus number is inside vehicle.vehicle.label
+                        const descriptor = vehiclePos.vehicle || {};
+                        const busNumber = descriptor.label || descriptor.id || 'Unknown';
 
                         const busIcon = L.divIcon({
                             className: 'bus-icon',
@@ -76,8 +77,8 @@
                         const marker = L.marker([pos.latitude, pos.longitude], { icon: busIcon }).addTo(busLayer);
 
                         let popupHTML = `<b>Bus ${busNumber}</b>`;
-                        if (vehicle.trip && vehicle.trip.routeId) popupHTML += `<br>Route: ${vehicle.trip.routeId}`;
-                        if (vehicle.trip && vehicle.trip.tripId) popupHTML += `<br>Trip: ${vehicle.trip.tripId}`;
+                        if (vehiclePos.trip && vehiclePos.trip.routeId) popupHTML += `<br>Route: ${vehiclePos.trip.routeId}`;
+                        if (vehiclePos.trip && vehiclePos.trip.tripId) popupHTML += `<br>Trip: ${vehiclePos.trip.tripId}`;
                         if (pos.speed !== undefined) popupHTML += `<br>Speed: ${(pos.speed * 3.6).toFixed(0)} km/h`;
                         marker.bindPopup(popupHTML);
 
