@@ -57,10 +57,9 @@
 
         const routeSelect = document.getElementById('routeFilter');
 
-        // Update filter when user selects a route
         routeSelect.addEventListener('change', () => {
             currentFilter = routeSelect.value;
-            loadLiveBuses(); // re-render with new filter
+            loadLiveBuses();
         });
 
         async function loadLiveBuses() {
@@ -93,12 +92,11 @@
 
                         const routeId = vehiclePos.trip ? vehiclePos.trip.routeId : null;
 
-                        // Collect unique routes for dropdown
                         if (routeId) routesSeen.add(routeId);
 
                         // Apply filter
                         if (currentFilter !== 'all' && routeId !== currentFilter) {
-                            return; // skip this bus
+                            return;
                         }
 
                         const busIcon = L.divIcon({
@@ -120,22 +118,27 @@
                     }
                 });
 
-                // Populate dropdown with all seen routes (sorted)
-                const currentOptions = Array.from(routeSelect.options).map(opt => opt.value);
-                const newRoutes = Array.from(routesSeen).sort((a, b) => {
+                // === FIXED DROPDOWN: always rebuild + preserve selection ===
+                const selected = routeSelect.value;
+                routeSelect.innerHTML = '<option value="all">All Routes</option>';
+
+                const sortedRoutes = Array.from(routesSeen).sort((a, b) => {
                     return parseInt(a) - parseInt(b) || a.localeCompare(b);
                 });
 
-                // Only rebuild if routes changed (keeps selection intact)
-                if (JSON.stringify(currentOptions.slice(1)) !== JSON.stringify(newRoutes)) {
-                    routeSelect.innerHTML = '<option value="all">All Routes</option>';
-                    newRoutes.forEach(route => {
-                        const opt = document.createElement('option');
-                        opt.value = route;
-                        opt.textContent = `Route ${route}`;
-                        routeSelect.appendChild(opt);
-                    });
+                sortedRoutes.forEach(route => {
+                    const opt = document.createElement('option');
+                    opt.value = route;
+                    opt.textContent = `Route ${route}`;
+                    routeSelect.appendChild(opt);
+                });
+
+                // Restore previous selection if it still exists
+                if (sortedRoutes.includes(selected) || selected === 'all') {
+                    routeSelect.value = selected;
                 }
+
+                console.log('✅ Routes detected this update:', sortedRoutes);  // ← open F12 to see this
 
                 document.getElementById('count').textContent = count;
                 const now = new Date();
