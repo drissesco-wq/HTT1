@@ -62,6 +62,9 @@
             loadLiveBuses();
         });
 
+        // Common Halifax routes as fallback
+        const fallbackRoutes = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99","100","200","300","400","500","600","700","800","900"];
+
         async function loadLiveBuses() {
             const statusEl = document.getElementById('status');
             statusEl.textContent = 'Fetching live buses...';
@@ -90,12 +93,19 @@
                         const descriptor = vehiclePos.vehicle || {};
                         const busNumber = descriptor.label || descriptor.id || 'Unknown';
 
-                        const routeId = vehiclePos.trip ? vehiclePos.trip.routeId : null;
+                        // Try multiple possible field paths for route (Halifax feed can be picky)
+                        let routeId = null;
+                        if (vehiclePos.trip) {
+                            routeId = vehiclePos.trip.routeId || 
+                                     vehiclePos.trip.route_id || 
+                                     (vehiclePos.trip.tripId ? vehiclePos.trip.tripId.split('-')[0] : null);
+                        }
+                        console.log('🔍 Bus data:', { busNumber, routeId, fullTrip: vehiclePos.trip }); // ← debug
 
-                        if (routeId) routesSeen.add(routeId);
+                        if (routeId) routesSeen.add(String(routeId));
 
                         // Apply filter
-                        if (currentFilter !== 'all' && routeId !== currentFilter) {
+                        if (currentFilter !== 'all' && String(routeId) !== currentFilter) {
                             return;
                         }
 
@@ -118,13 +128,20 @@
                     }
                 });
 
-                // === FIXED DROPDOWN: always rebuild + preserve selection ===
+                // === Build dropdown ===
                 const selected = routeSelect.value;
                 routeSelect.innerHTML = '<option value="all">All Routes</option>';
 
-                const sortedRoutes = Array.from(routesSeen).sort((a, b) => {
-                    return parseInt(a) - parseInt(b) || a.localeCompare(b);
-                });
+                // Use detected routes + fallback
+                let allRoutes = Array.from(routesSeen);
+                if (allRoutes.length === 0) {
+                    console.log('⚠️ No routes detected — using fallback list');
+                    allRoutes = fallbackRoutes;
+                } else {
+                    console.log('✅ Detected live routes:', allRoutes);
+                }
+
+                const sortedRoutes = [...new Set(allRoutes)].sort((a, b) => parseInt(a) - parseInt(b) || a.localeCompare(b));
 
                 sortedRoutes.forEach(route => {
                     const opt = document.createElement('option');
@@ -133,12 +150,10 @@
                     routeSelect.appendChild(opt);
                 });
 
-                // Restore previous selection if it still exists
+                // Restore selection
                 if (sortedRoutes.includes(selected) || selected === 'all') {
                     routeSelect.value = selected;
                 }
-
-                console.log('✅ Routes detected this update:', sortedRoutes);  // ← open F12 to see this
 
                 document.getElementById('count').textContent = count;
                 const now = new Date();
