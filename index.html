@@ -2,77 +2,164 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Halifax Transit Live • Real-Time Buses</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Halifax Transit Live</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin:0; padding:0; font-family: Arial, sans-serif; }
-        #map { height: 65vh; width: 100%; }
-        .header {
-            position: absolute; top: 10px; left: 10px; z-index: 1000;
-            background: white; padding: 12px 18px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 20px; font-weight: bold;
-            display: flex; align-items: center; gap: 10px;
+        :root {
+            --primary: #0077cc;
         }
-        .filter {
-            position: absolute; top: 70px; left: 10px; z-index: 1000;
-            background: white; padding: 10px 14px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 16px;
-            display: flex; align-items: center; gap: 8px;
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: #f4f4f4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .top-bar {
+            background: white;
+            padding: 12px 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .header {
+            font-size: 1.35rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
         }
         .status {
-            position: absolute; top: 10px; right: 10px; z-index: 1000;
-            background: white; padding: 8px 14px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 14px;
+            font-size: 0.9rem;
+            background: #f0f0f0;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            white-space: nowrap;
         }
-        .bus-icon { font-size: 24px; }
-        select { padding: 6px 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
-
+        .filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 220px;
+        }
+        select {
+            padding: 10px 14px;
+            font-size: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            flex: 1;
+        }
+        #map {
+            flex: 1;
+            min-height: 0;
+        }
         #arrivals-panel {
-            padding: 20px; background: #f8f9fa; border-top: 3px solid #0077cc;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: white;
+            padding: 20px 16px 24px;
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.1);
+            max-height: 42vh;
+            overflow-y: auto;
         }
         .arrivals-card {
-            max-width: 800px; margin: 0 auto; background: white;
-            border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
         }
-        .arrivals-header { font-size: 22px; font-weight: bold; margin-bottom: 15px; }
+        .arrivals-header {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
         input[type="text"] {
-            padding: 12px; font-size: 18px; border: 2px solid #ccc; border-radius: 8px; width: 220px;
+            flex: 1;
+            padding: 16px;
+            font-size: 1.1rem;
+            border: 2px solid #ccc;
+            border-radius: 12px;
         }
         button {
-            padding: 12px 24px; font-size: 18px; background: #0077cc; color: white;
-            border: none; border-radius: 8px; cursor: pointer;
+            padding: 16px 28px;
+            font-size: 1.1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            white-space: nowrap;
         }
         button:hover { background: #005fa3; }
-        .results { margin-top: 20px; }
+        .results {
+            margin-top: 8px;
+        }
         .result-item {
-            padding: 14px; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 4px;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         .result-item:last-child { border-bottom: none; }
-        .no-results { color: #666; font-style: italic; }
-        .time-row { display: flex; gap: 20px; font-size: 15px; }
-        .time-label { font-weight: bold; width: 110px; }
+        .time-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 1rem;
+        }
+        .time-label { font-weight: 600; min-width: 115px; }
+        .no-results { color: #666; font-style: italic; padding: 16px 0; }
+
+        /* Mobile tweaks */
+        @media (max-width: 640px) {
+            .top-bar { padding: 10px 12px; gap: 8px; }
+            .header { font-size: 1.2rem; }
+            #arrivals-panel { padding: 16px 12px 20px; max-height: 48vh; }
+            input[type="text"], button { font-size: 1.05rem; padding: 14px 18px; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">🚏 Halifax Transit Live Map • <span id="count">0</span> buses on the road</div>
-    
-    <div class="filter">
-        <label for="routeFilter"><strong>Filter by Route:</strong></label>
-        <select id="routeFilter">
-            <option value="all">All Routes</option>
-        </select>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="header">🚏 Halifax Transit Live • <span id="count">0</span> buses</div>
+        <div class="status" id="status">Loading live data...</div>
+        
+        <div class="filter">
+            <label for="routeFilter"><strong>Route:</strong></label>
+            <select id="routeFilter">
+                <option value="all">All Routes</option>
+            </select>
+        </div>
     </div>
 
-    <div class="status" id="status">Loading real-time buses...</div>
+    <!-- Map -->
     <div id="map"></div>
 
+    <!-- Arrivals Panel -->
     <div id="arrivals-panel">
         <div class="arrivals-card">
             <div class="arrivals-header">🕒 Next Buses at Stop</div>
-            <input id="stopInput" type="text" placeholder="Enter stop number (e.g. 3589)" />
-            <button onclick="getNextArrivals()">Get Arrivals</button>
+            <div class="input-group">
+                <input id="stopInput" type="text" placeholder="Stop number (e.g. 3589)" />
+                <button onclick="getNextArrivals()">Get Arrivals</button>
+            </div>
             <div id="arrivals-results" class="results"></div>
         </div>
     </div>
@@ -82,10 +169,10 @@
     <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
     <script>
-        // ==================== MAP CODE (unchanged) ====================
+        // ==================== MAP ====================
         const map = L.map('map').setView([44.65, -63.58], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors | Halifax Transit data'
+            attribution: '&copy; OpenStreetMap | Halifax Transit'
         }).addTo(map);
 
         const busLayer = L.layerGroup().addTo(map);
@@ -94,16 +181,18 @@
 
         const fallbackRoutes = ["1","2","3","4","5","8","21","22","24","25","26","28","29","39","50","53","54","55","56","58","59","61","62","63","64","65","67","68","72","82","83","84","85","86","87","88","90","91","93","123","127","135","136","137","138","158","159","161","165","182","183","185","186","192","194","196","320","330","370","401","415","433","51A","51B","168A","168B"];
 
-        routeSelect.addEventListener('change', () => { currentFilter = routeSelect.value; loadLiveBuses(); });
+        routeSelect.addEventListener('change', () => {
+            currentFilter = routeSelect.value;
+            loadLiveBuses();
+        });
 
         function populateDropdown(routes) {
             const selected = routeSelect.value;
             routeSelect.innerHTML = '<option value="all">All Routes</option>';
-            const sorted = [...new Set(routes)].sort((a, b) => parseInt(a) - parseInt(b) || a.localeCompare(b));
-            sorted.forEach(route => {
+            const sorted = [...new Set(routes)].sort((a,b) => parseInt(a)-parseInt(b) || a.localeCompare(b));
+            sorted.forEach(r => {
                 const opt = document.createElement('option');
-                opt.value = route;
-                opt.textContent = `Route ${route}`;
+                opt.value = r; opt.textContent = `Route ${r}`;
                 routeSelect.appendChild(opt);
             });
             if (sorted.includes(selected) || selected === 'all') routeSelect.value = selected;
@@ -112,12 +201,12 @@
 
         async function loadLiveBuses() {
             const statusEl = document.getElementById('status');
-            statusEl.textContent = 'Fetching live buses...';
+            statusEl.textContent = 'Fetching buses...';
             try {
                 const feedUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://gtfs.halifax.ca/realtime/Vehicle/VehiclePositions.pb');
-                const response = await fetch(feedUrl);
-                if (!response.ok) throw new Error('Feed not available');
-                const arrayBuffer = await response.arrayBuffer();
+                const res = await fetch(feedUrl);
+                if (!res.ok) throw new Error();
+                const arrayBuffer = await res.arrayBuffer();
                 const pbf = new Pbf(new Uint8Array(arrayBuffer));
                 const feed = FeedMessage.read(pbf);
 
@@ -126,28 +215,20 @@
                 const liveRoutes = new Set();
 
                 feed.entity.forEach(entity => {
-                    if (entity.vehicle && entity.vehicle.position) {
+                    if (entity.vehicle?.position) {
                         const pos = entity.vehicle.position;
-                        const vehiclePos = entity.vehicle;
-                        const descriptor = vehiclePos.vehicle || {};
+                        const v = entity.vehicle;
+                        const descriptor = v.vehicle || {};
                         const busNumber = descriptor.label || descriptor.id || 'Unknown';
 
                         let routeId = null;
-                        if (vehiclePos.trip) {
-                            routeId = vehiclePos.trip.routeId || vehiclePos.trip.route_id || 
-                                     (vehiclePos.trip.tripId ? vehiclePos.trip.tripId.split('-')[0] : null);
-                        }
+                        if (v.trip) routeId = v.trip.routeId || v.trip.route_id || (v.trip.tripId ? v.trip.tripId.split('-')[0] : null);
                         if (routeId) liveRoutes.add(String(routeId));
 
                         if (currentFilter !== 'all' && String(routeId) !== currentFilter) return;
 
-                        const busIcon = L.divIcon({ className: 'bus-icon', html: '🚌', iconSize: [30, 30], iconAnchor: [15, 15] });
-                        const marker = L.marker([pos.latitude, pos.longitude], { icon: busIcon }).addTo(busLayer);
-
-                        let popupHTML = `<b>Bus ${busNumber}</b>`;
-                        if (routeId) popupHTML += `<br>Route: ${routeId}`;
-                        if (vehiclePos.trip && vehiclePos.trip.tripId) popupHTML += `<br>Trip: ${vehiclePos.trip.tripId}`;
-                        marker.bindPopup(popupHTML);
+                        const icon = L.divIcon({className:'bus-icon', html:'🚌', iconSize:[30,30], iconAnchor:[15,15]});
+                        L.marker([pos.latitude, pos.longitude], {icon}).addTo(busLayer).bindPopup(`<b>Bus ${busNumber}</b>${routeId ? `<br>Route: ${routeId}` : ''}${v.trip?.tripId ? `<br>Trip: ${v.trip.tripId}` : ''}`);
 
                         count++;
                     }
@@ -157,11 +238,9 @@
                 populateDropdown(allRoutes);
 
                 document.getElementById('count').textContent = count;
-                const now = new Date();
-                statusEl.innerHTML = `✅ Updated just now<br><small>${now.toLocaleTimeString('en-CA')}</small>`;
-            } catch (error) {
-                console.error("Bus fetch error:", error);
-                statusEl.textContent = '❌ Could not load buses — tap map to retry';
+                statusEl.innerHTML = `✅ Updated <small>${new Date().toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit'})}</small>`;
+            } catch(e) {
+                statusEl.textContent = '❌ Tap map to retry';
             }
         }
 
@@ -169,11 +248,11 @@
         setInterval(loadLiveBuses, 20000);
         map.on('click', loadLiveBuses);
 
-        // ==================== NEXT ARRIVALS - NO DUPLICATES + NEVER EARLY ====================
+        // ==================== NEXT ARRIVALS (no duplicates + never early) ====================
         async function getNextArrivals() {
             const stopInput = document.getElementById('stopInput').value.trim();
             const resultsDiv = document.getElementById('arrivals-results');
-            resultsDiv.innerHTML = '<p style="color:#0077cc;">Fetching predictions...</p>';
+            resultsDiv.innerHTML = '<p style="color:var(--primary);">Fetching predictions...</p>';
 
             if (!stopInput) {
                 resultsDiv.innerHTML = '<p class="no-results">Please enter a stop number</p>';
@@ -181,50 +260,42 @@
             }
 
             try {
-                const feedUrl = 'https://api.allorigins.win/raw?url=' + 
-                    encodeURIComponent('https://gtfs.halifax.ca/realtime/TripUpdate/TripUpdates.pb');
-
-                const response = await fetch(feedUrl);
-                if (!response.ok) throw new Error('Feed not available');
-
-                const arrayBuffer = await response.arrayBuffer();
+                const feedUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://gtfs.halifax.ca/realtime/TripUpdate/TripUpdates.pb');
+                const res = await fetch(feedUrl);
+                if (!res.ok) throw new Error();
+                const arrayBuffer = await res.arrayBuffer();
                 const pbf = new Pbf(new Uint8Array(arrayBuffer));
                 const feed = FeedMessage.read(pbf);
 
-                const seen = new Map(); // deduplication key: route-bus
+                const seen = new Map();
                 let arrivals = [];
 
                 feed.entity.forEach(entity => {
-                    if (entity.trip_update && entity.trip_update.stop_time_update) {
+                    if (entity.trip_update?.stop_time_update) {
                         const trip = entity.trip_update.trip;
                         const vehicle = entity.trip_update.vehicle || {};
                         const busNumber = vehicle.label || vehicle.id || '—';
                         const routeId = trip.routeId || trip.route_id || '—';
-
                         const key = `${routeId}-${busNumber}`;
 
                         entity.trip_update.stop_time_update.forEach(stopUpdate => {
                             if (String(stopUpdate.stop_id) === stopInput) {
-                                const departureEvent = stopUpdate.departure || stopUpdate.arrival;
-                                if (departureEvent && departureEvent.time !== undefined) {
-                                    let predictedUnix = departureEvent.time;
-                                    const delaySeconds = departureEvent.delay !== undefined ? departureEvent.delay : 0;
-                                    const scheduledUnix = predictedUnix - delaySeconds;
+                                const dep = stopUpdate.departure || stopUpdate.arrival;
+                                if (dep && dep.time !== undefined) {
+                                    let predicted = dep.time;
+                                    const delay = dep.delay !== undefined ? dep.delay : 0;
+                                    const scheduled = predicted - delay;
 
-                                    // NEVER PREDICT EARLY: clamp predicted time
-                                    if (predictedUnix < scheduledUnix) {
-                                        predictedUnix = scheduledUnix;
-                                    }
+                                    if (predicted < scheduled) predicted = scheduled;
 
-                                    const minutesAway = Math.round((predictedUnix * 1000 - Date.now()) / 60000);
-
+                                    const minutesAway = Math.round((predicted * 1000 - Date.now()) / 60000);
                                     if (minutesAway >= 0 && !seen.has(key)) {
                                         seen.set(key, true);
                                         arrivals.push({
                                             route: routeId,
                                             bus: busNumber,
-                                            predictedLeave: predictedUnix,
-                                            scheduledLeave: scheduledUnix,
+                                            predictedLeave: predicted,
+                                            scheduledLeave: scheduled,
                                             minutes: minutesAway
                                         });
                                     }
@@ -234,12 +305,12 @@
                     }
                 });
 
-                arrivals.sort((a, b) => a.minutes - b.minutes);
+                arrivals.sort((a,b) => a.minutes - b.minutes);
 
                 if (arrivals.length === 0) {
-                    resultsDiv.innerHTML = `<p class="no-results">No upcoming buses found for stop <strong>${stopInput}</strong> right now.</p>`;
+                    resultsDiv.innerHTML = `<p class="no-results">No upcoming buses for stop <strong>${stopInput}</strong></p>`;
                 } else {
-                    let html = `<p><strong>Stop ${stopInput}</strong> — ${arrivals.length} upcoming bus(es)</p>`;
+                    let html = `<p><strong>Stop ${stopInput}</strong> — ${arrivals.length} upcoming</p>`;
                     arrivals.forEach(arr => {
                         const predTime = new Date(arr.predictedLeave * 1000).toLocaleTimeString('en-CA', {hour:'numeric', minute:'2-digit'});
                         const schedTime = new Date(arr.scheduledLeave * 1000).toLocaleTimeString('en-CA', {hour:'numeric', minute:'2-digit'});
@@ -249,23 +320,20 @@
                             <div class="result-item">
                                 <div><strong>Route ${arr.route}</strong> • Bus ${arr.bus}</div>
                                 <div class="time-row">
-                                    <div><span class="time-label">Predicted leave:</span> <strong>${predTime}</strong> (${arr.minutes} min)</div>
-                                    <div><span class="time-label">Scheduled leave:</span> <strong>${schedTime}</strong></div>
+                                    <div><span class="time-label">Predicted:</span> <strong>${predTime}</strong> (${arr.minutes} min)</div>
+                                    <div><span class="time-label">Scheduled:</span> <strong>${schedTime}</strong></div>
                                 </div>
-                                ${delayMin > 0 ? `<small style="color:#d32f2f;">▲ ${delayMin} min late</small>` : '<small style="color:#388e3c;">On time</small>'}
+                                ${delayMin > 0 ? `<small style="color:#d32f2f;">▲ ${delayMin} min late</small>` : `<small style="color:#388e3c;">On time</small>`}
                             </div>`;
                     });
                     resultsDiv.innerHTML = html;
                 }
-            } catch (error) {
-                console.error(error);
-                resultsDiv.innerHTML = `<p style="color:red;">❌ Could not load arrivals. Try again in a moment.</p>`;
+            } catch(e) {
+                resultsDiv.innerHTML = `<p style="color:red;">❌ Could not load arrivals. Try again.</p>`;
             }
         }
 
-        document.getElementById('stopInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') getNextArrivals();
-        });
+        document.getElementById('stopInput').addEventListener('keypress', e => { if (e.key === 'Enter') getNextArrivals(); });
     </script>
 </body>
 </html>
