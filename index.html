@@ -28,7 +28,7 @@
         .bus-icon { font-size: 24px; }
         select { padding: 6px 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
 
-        /* New arrivals panel */
+        /* Arrivals panel */
         #arrivals-panel {
             padding: 20px; background: #f8f9fa; border-top: 3px solid #0077cc;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -48,10 +48,12 @@
         button:hover { background: #005fa3; }
         .results { margin-top: 20px; }
         .result-item {
-            padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;
+            padding: 14px; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 4px;
         }
         .result-item:last-child { border-bottom: none; }
         .no-results { color: #666; font-style: italic; }
+        .time-row { display: flex; gap: 20px; font-size: 15px; }
+        .time-label { font-weight: bold; width: 110px; }
     </style>
 </head>
 <body>
@@ -67,7 +69,7 @@
     <div class="status" id="status">Loading real-time buses...</div>
     <div id="map"></div>
 
-    <!-- NEW: Next Buses at Stop section -->
+    <!-- Next Buses at Stop -->
     <div id="arrivals-panel">
         <div class="arrivals-card">
             <div class="arrivals-header">🕒 Next Buses at Stop</div>
@@ -82,7 +84,7 @@
     <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
     <script>
-        // ==================== MAP CODE (unchanged) ====================
+        // ==================== MAP CODE ====================
         const map = L.map('map').setView([44.65, -63.58], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors | Halifax Transit data'
@@ -94,10 +96,7 @@
 
         const fallbackRoutes = ["1","2","3","4","5","8","21","22","24","25","26","28","29","39","50","53","54","55","56","58","59","61","62","63","64","65","67","68","72","82","83","84","85","86","87","88","90","91","93","123","127","135","136","137","138","158","159","161","165","182","183","185","186","192","194","196","320","330","370","401","415","433","51A","51B","168A","168B"];
 
-        routeSelect.addEventListener('change', () => {
-            currentFilter = routeSelect.value;
-            loadLiveBuses();
-        });
+        routeSelect.addEventListener('change', () => { currentFilter = routeSelect.value; loadLiveBuses(); });
 
         function populateDropdown(routes) {
             const selected = routeSelect.value;
@@ -172,7 +171,7 @@
         setInterval(loadLiveBuses, 20000);
         map.on('click', loadLiveBuses);
 
-        // ==================== NEW: NEXT ARRIVALS BY STOP ====================
+        // ==================== NEXT ARRIVALS BY STOP (with predicted + scheduled leave) ====================
         async function getNextArrivals() {
             const stopInput = document.getElementById('stopInput').value.trim();
             const resultsDiv = document.getElementById('arrivals-results');
@@ -204,17 +203,23 @@
 
                         entity.trip_update.stop_time_update.forEach(stopUpdate => {
                             if (String(stopUpdate.stop_id) === stopInput) {
-                                const arrivalTime = stopUpdate.arrival ? stopUpdate.arrival.time : 
-                                                  (stopUpdate.departure ? stopUpdate.departure.time : null);
-                                if (arrivalTime) {
-                                    const minutesAway = Math.round((arrivalTime * 1000 - Date.now()) / 60000);
+                                const departureEvent = stopUpdate.departure || stopUpdate.arrival;
+                                if (departureEvent && departureEvent.time !== undefined) {
+                                    const predictedUnix = departureEvent.time;
+                                    const delaySeconds = departureEvent.delay !== undefined ? departureEvent.delay : 0;
+
+                                    const scheduledUnix = predictedUnix - delaySeconds;
+
+                                    const minutesAway = Math.round((predictedUnix * 1000 - Date.now()) / 60000);
+
                                     if (minutesAway >= 0) {
                                         const routeId = trip.routeId || trip.route_id || '—';
                                         arrivals.push({
                                             route: routeId,
                                             bus: busNumber,
-                                            minutes: minutesAway,
-                                            time: new Date(arrivalTime * 1000).toLocaleTimeString('en-CA', {hour:'numeric', minute:'2-digit'})
+                                            predictedLeave: predictedUnix,
+                                            scheduledLeave: scheduledUnix,
+                                            minutes: minutesAway
                                         });
                                     }
                                 }
@@ -223,7 +228,6 @@
                     }
                 });
 
-                // Sort by soonest first
                 arrivals.sort((a, b) => a.minutes - b.minutes);
 
                 if (arrivals.length === 0) {
@@ -231,10 +235,18 @@
                 } else {
                     let html = `<p><strong>Stop ${stopInput}</strong> — ${arrivals.length} upcoming bus(es)</p>`;
                     arrivals.forEach(arr => {
+                        const predTime = new Date(arr.predictedLeave * 1000).toLocaleTimeString('en-CA', {hour:'numeric', minute:'2-digit'});
+                        const schedTime = new Date(arr.scheduledLeave * 1000).toLocaleTimeString('en-CA', {hour:'numeric', minute:'2-digit'});
+                        const delayMin = Math.round((arr.predictedLeave - arr.scheduledLeave) / 60);
+
                         html += `
                             <div class="result-item">
                                 <div><strong>Route ${arr.route}</strong> • Bus ${arr.bus}</div>
-                                <div><strong>${arr.minutes} min</strong> <small>(${arr.time})</small></div>
+                                <div class="time-row">
+                                    <div><span class="time-label">Predicted leave:</span> <strong>${predTime}</strong> (${arr.minutes} min)</div>
+                                    <div><span class="time-label">Scheduled leave:</span> <strong>${schedTime}</strong></div>
+                                </div>
+                                ${delayMin !== 0 ? `<small style="color:${delayMin > 0 ? '#d32f2f' : '#388e3c'};">${delayMin > 0 ? '▲ ' + delayMin + ' min late' : '▼ ' + Math.abs(delayMin) + ' min early'}</small>` : '<small style="color:#388e3c;">On time</small>'}
                             </div>`;
                     });
                     resultsDiv.innerHTML = html;
@@ -245,7 +257,7 @@
             }
         }
 
-        // Allow pressing Enter in the input field
+        // Enter key support
         document.getElementById('stopInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') getNextArrivals();
         });
