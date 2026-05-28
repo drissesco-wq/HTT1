@@ -57,15 +57,14 @@
 
         const routeSelect = document.getElementById('routeFilter');
 
-        // OFFICIAL current Halifax Transit routes (May 2026)
-        const fallbackRoutes = ["1","2","3","4","5","6","7","8","9","10","21","22","24","25","26","28","29","30","39","50","51","53","54","55","56","58","59","61","62","63","64","65","67","68","72","82","83","84","85","86","87","88","90","91","93","123","127","135","136","137","138","158","159","161","165","168","182","183","185","186","192","194","196","320","330","370","401","415","433"];
+        // Cleaned official Halifax Transit routes (May 2026) - plain numbers you asked to remove are gone
+        const fallbackRoutes = ["1","2","3","4","5","8","21","22","24","25","26","28","29","39","50","53","54","55","56","58","59","61","62","63","64","65","67","68","72","82","83","84","85","86","87","88","90","91","93","123","127","135","136","137","138","158","159","161","165","182","183","185","186","192","194","196","320","330","370","401","415","433","51A","51B","168A","168B"];
 
         routeSelect.addEventListener('change', () => {
             currentFilter = routeSelect.value;
             loadLiveBuses();
         });
 
-        // Populate dropdown immediately when page loads
         function populateDropdown(routes) {
             const selected = routeSelect.value;
             routeSelect.innerHTML = '<option value="all">All Routes</option>';
@@ -79,7 +78,6 @@
             if (sorted.includes(selected) || selected === 'all') routeSelect.value = selected;
         }
 
-        // Initial population
         populateDropdown(fallbackRoutes);
 
         async function loadLiveBuses() {
@@ -134,7 +132,6 @@
                     }
                 });
 
-                // Merge live routes with official fallback
                 const allRoutes = [...new Set([...fallbackRoutes, ...liveRoutes])];
                 populateDropdown(allRoutes);
 
@@ -148,11 +145,8 @@
             }
         }
 
-        // Load immediately + every 20 seconds
         loadLiveBuses();
         setInterval(loadLiveBuses, 20000);
-
-        // Click map to manually refresh
         map.on('click', loadLiveBuses);
     </script>
 </body>
