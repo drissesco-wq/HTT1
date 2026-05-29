@@ -101,10 +101,9 @@
         .time-label { font-weight: 600; min-width: 115px; }
         .no-results { color: #666; font-style: italic; padding: 16px 0; }
 
-        /* Map container with floating dropdown */
         .map-wrapper {
             position: relative;
-            height: 52vh;          /* ← your diminished map height */
+            height: 52vh;
             flex-shrink: 0;
         }
         #map {
@@ -127,7 +126,6 @@
         }
         .floating-filter label { font-weight: bold; }
 
-        /* Mobile tweaks */
         @media (max-width: 640px) {
             .map-wrapper { height: 48vh; }
             .top-bar { padding: 10px 12px; }
@@ -141,11 +139,11 @@
 <body>
     <!-- Slim Top Bar -->
     <div class="top-bar">
-        <div class="header">🚏 Halifax Transit Live • <span id="count">0</span> buses</div>
+        <div class="header">🚏 Halifax Transit Live • <span id="count">0</span> buses in service</div>
         <div class="status" id="status">Loading live data...</div>
     </div>
 
-    <!-- Next Buses at Stop - NOW ABOVE THE MAP -->
+    <!-- Next Buses at Stop - Above the map -->
     <div id="arrivals-panel">
         <div class="arrivals-card">
             <div class="arrivals-header">🕒 Next Buses at Stop</div>
@@ -161,7 +159,6 @@
     <div class="map-wrapper">
         <div id="map"></div>
         
-        <!-- Floating Route Dropdown - Upper Right Corner -->
         <div class="floating-filter">
             <label for="routeFilter"><strong>Route:</strong></label>
             <select id="routeFilter">
@@ -175,7 +172,6 @@
     <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
     <script>
-        // ==================== MAP ====================
         const map = L.map('map').setView([44.65, -63.58], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap | Halifax Transit'
@@ -251,7 +247,6 @@
         setInterval(loadLiveBuses, 20000);
         map.on('click', loadLiveBuses);
 
-        // ==================== NEXT ARRIVALS ====================
         async function getNextArrivals() {
             const stopInput = document.getElementById('stopInput').value.trim();
             const resultsDiv = document.getElementById('arrivals-results');
