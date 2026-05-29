@@ -17,7 +17,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            user-select: none; /* Disable text selection */
+            user-select: none;
         }
         .top-bar {
             background: white;
@@ -102,9 +102,10 @@
         .time-label { font-weight: 600; min-width: 115px; }
         .no-results { color: #666; font-style: italic; padding: 16px 0; }
 
+        /* FIXED MAP SIZE */
         .map-wrapper {
             position: relative;
-            height: 52vh;
+            height: 450px;          /* ← FIXED HEIGHT (change this number if you want) */
             flex-shrink: 0;
         }
         #map {
@@ -128,7 +129,7 @@
         .floating-filter label { font-weight: bold; }
 
         @media (max-width: 640px) {
-            .map-wrapper { height: 48vh; }
+            .map-wrapper { height: 420px; }   /* slightly smaller on phones */
             .top-bar { padding: 10px 12px; }
             .header { font-size: 1.2rem; }
             #arrivals-panel { padding: 16px 12px 20px; }
@@ -176,25 +177,16 @@
         // ====================== ANTI-COPY PROTECTION ======================
         console.log('%c🚫 This website is protected. Unauthorized copying or distribution is strictly prohibited.', 'color:red; font-size:16px; font-weight:bold');
 
-        // Disable right-click
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            alert('⚠️ Right-click is disabled on this site.');
-            return false;
-        });
+        document.addEventListener('contextmenu', e => { e.preventDefault(); alert('⚠️ Right-click is disabled on this site.'); return false; });
 
-        // Disable common developer tools shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'F12' || 
-                (e.ctrlKey && e.key === 'u') || 
-                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J'))) {
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && e.key === 'u') || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J'))) {
                 e.preventDefault();
                 alert('⚠️ Developer tools are disabled on this site.');
                 return false;
             }
         });
 
-        // Basic DevTools detection
         setInterval(() => {
             if (window.outerHeight - window.innerHeight > 150 || window.outerWidth - window.innerWidth > 150) {
                 console.log('%c⚠️ Developer tools detected!', 'color:orange; font-weight:bold');
