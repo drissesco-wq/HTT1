@@ -134,6 +134,17 @@
         }
         .floating-filter label { font-weight: bold; }
 
+        /* Footer */
+        footer {
+            background: #f4f4f4;
+            padding: 18px 16px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #666;
+            border-top: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
         @media (max-width: 640px) {
             .map-wrapper { 
                 width: 380px;
@@ -178,6 +189,11 @@
             </select>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer>
+        Built in 2026 • lras.sarl
+    </footer>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/pbf@3.0.5/dist/pbf.js"></script>
@@ -359,7 +375,7 @@
                     resultsDiv.innerHTML = html;
                 }
 
-                // AUTO-SCROLL TO RESULTS
+                // Auto-scroll to results
                 resultsDiv.scrollIntoView({ behavior: 'smooth' });
 
             } catch(e) {
