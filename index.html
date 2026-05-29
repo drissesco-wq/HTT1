@@ -107,7 +107,6 @@
         .time-label { font-weight: 600; min-width: 115px; }
         .no-results { color: #666; font-style: italic; padding: 16px 0; }
 
-        /* FIXED 450px x 450px SQUARE MAP - CENTERED */
         .map-wrapper {
             position: relative;
             width: 450px;
@@ -137,7 +136,7 @@
 
         @media (max-width: 640px) {
             .map-wrapper { 
-                width: 380px;    /* slightly smaller on phones */
+                width: 380px;
                 height: 380px;
             }
             .top-bar { padding: 10px 12px; }
@@ -168,7 +167,7 @@
         </div>
     </div>
 
-    <!-- Map with floating route dropdown -->
+    <!-- Fixed 450×450 Map -->
     <div class="map-wrapper">
         <div id="map"></div>
         
@@ -280,7 +279,7 @@
         setInterval(loadLiveBuses, 20000);
         map.on('click', loadLiveBuses);
 
-        // ====================== NEXT ARRIVALS ======================
+        // ====================== NEXT ARRIVALS + AUTO-SCROLL ======================
         async function getNextArrivals() {
             const stopInput = document.getElementById('stopInput').value.trim();
             const resultsDiv = document.getElementById('arrivals-results');
@@ -359,6 +358,10 @@
                     });
                     resultsDiv.innerHTML = html;
                 }
+
+                // AUTO-SCROLL TO RESULTS
+                resultsDiv.scrollIntoView({ behavior: 'smooth' });
+
             } catch(e) {
                 resultsDiv.innerHTML = `<p style="color:red;">❌ Could not load arrivals. Try again.</p>`;
             }
