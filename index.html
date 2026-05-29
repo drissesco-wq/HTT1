@@ -6,9 +6,7 @@
     <title>Halifax Transit Live</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root {
-            --primary: #0077cc;
-        }
+        :root { --primary: #0077cc; }
         * { box-sizing: border-box; }
         body {
             margin: 0;
@@ -61,14 +59,14 @@
             flex: 1;
         }
         #map {
-            flex: 1;
-            min-height: 0;
+            height: 52vh;          /* ← DIMINISHED HEIGHT */
+            width: 100%;
         }
         #arrivals-panel {
             background: white;
             padding: 20px 16px 24px;
             box-shadow: 0 -2px 15px rgba(0,0,0,0.1);
-            max-height: 42vh;
+            flex: 1;
             overflow-y: auto;
         }
         .arrivals-card {
@@ -106,9 +104,7 @@
             white-space: nowrap;
         }
         button:hover { background: #005fa3; }
-        .results {
-            margin-top: 8px;
-        }
+        .results { margin-top: 8px; }
         .result-item {
             padding: 16px;
             border-bottom: 1px solid #eee;
@@ -130,7 +126,8 @@
         @media (max-width: 640px) {
             .top-bar { padding: 10px 12px; gap: 8px; }
             .header { font-size: 1.2rem; }
-            #arrivals-panel { padding: 16px 12px 20px; max-height: 48vh; }
+            #map { height: 48vh; }               /* even a bit shorter on phones */
+            #arrivals-panel { padding: 16px 12px 20px; }
             input[type="text"], button { font-size: 1.05rem; padding: 14px 18px; }
         }
     </style>
@@ -149,7 +146,7 @@
         </div>
     </div>
 
-    <!-- Map -->
+    <!-- Map (now much shorter) -->
     <div id="map"></div>
 
     <!-- Arrivals Panel -->
@@ -181,10 +178,7 @@
 
         const fallbackRoutes = ["1","2","3","4","5","8","21","22","24","25","26","28","29","39","50","53","54","55","56","58","59","61","62","63","64","65","67","68","72","82","83","84","85","86","87","88","90","91","93","123","127","135","136","137","138","158","159","161","165","182","183","185","186","192","194","196","320","330","370","401","415","433","51A","51B","168A","168B"];
 
-        routeSelect.addEventListener('change', () => {
-            currentFilter = routeSelect.value;
-            loadLiveBuses();
-        });
+        routeSelect.addEventListener('change', () => { currentFilter = routeSelect.value; loadLiveBuses(); });
 
         function populateDropdown(routes) {
             const selected = routeSelect.value;
@@ -248,7 +242,7 @@
         setInterval(loadLiveBuses, 20000);
         map.on('click', loadLiveBuses);
 
-        // ==================== NEXT ARRIVALS (no duplicates + never early) ====================
+        // ==================== NEXT ARRIVALS ====================
         async function getNextArrivals() {
             const stopInput = document.getElementById('stopInput').value.trim();
             const resultsDiv = document.getElementById('arrivals-results');
@@ -285,7 +279,6 @@
                                     let predicted = dep.time;
                                     const delay = dep.delay !== undefined ? dep.delay : 0;
                                     const scheduled = predicted - delay;
-
                                     if (predicted < scheduled) predicted = scheduled;
 
                                     const minutesAway = Math.round((predicted * 1000 - Date.now()) / 60000);
