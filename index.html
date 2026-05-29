@@ -84,10 +84,8 @@
             white-space: nowrap;
         }
         button:hover { background: #005fa3; }
-        
-        /* SCROLLABLE RESULTS - FULL LENGTH */
         .results {
-            max-height: 45vh;           /* adjust if you want more/less space */
+            max-height: 45vh;
             overflow-y: auto;
             margin-top: 8px;
             padding-right: 8px;
@@ -109,9 +107,12 @@
         .time-label { font-weight: 600; min-width: 115px; }
         .no-results { color: #666; font-style: italic; padding: 16px 0; }
 
+        /* FIXED 450px x 450px SQUARE MAP - CENTERED */
         .map-wrapper {
             position: relative;
+            width: 450px;
             height: 450px;
+            margin: 0 auto;
             flex-shrink: 0;
         }
         #map {
@@ -135,7 +136,10 @@
         .floating-filter label { font-weight: bold; }
 
         @media (max-width: 640px) {
-            .map-wrapper { height: 420px; }
+            .map-wrapper { 
+                width: 380px;    /* slightly smaller on phones */
+                height: 380px;
+            }
             .top-bar { padding: 10px 12px; }
             .header { font-size: 1.2rem; }
             #arrivals-panel { padding: 16px 12px 20px; }
