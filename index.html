@@ -17,6 +17,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            user-select: none; /* Disable text selection */
         }
         .top-bar {
             background: white;
@@ -137,7 +138,7 @@
     </style>
 </head>
 <body>
-    <!-- Slim Top Bar -->
+    <!-- Top Bar -->
     <div class="top-bar">
         <div class="header">🚏 Halifax Transit Live • <span id="count">0</span> buses in service</div>
         <div class="status" id="status">Loading live data...</div>
@@ -172,6 +173,35 @@
     <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
     <script>
+        // ====================== ANTI-COPY PROTECTION ======================
+        console.log('%c🚫 This website is protected. Unauthorized copying or distribution is strictly prohibited.', 'color:red; font-size:16px; font-weight:bold');
+
+        // Disable right-click
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            alert('⚠️ Right-click is disabled on this site.');
+            return false;
+        });
+
+        // Disable common developer tools shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.key === 'u') || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J'))) {
+                e.preventDefault();
+                alert('⚠️ Developer tools are disabled on this site.');
+                return false;
+            }
+        });
+
+        // Basic DevTools detection
+        setInterval(() => {
+            if (window.outerHeight - window.innerHeight > 150 || window.outerWidth - window.innerWidth > 150) {
+                console.log('%c⚠️ Developer tools detected!', 'color:orange; font-weight:bold');
+            }
+        }, 1000);
+
+        // ====================== MAP CODE ======================
         const map = L.map('map').setView([44.65, -63.58], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap | Halifax Transit'
@@ -247,6 +277,7 @@
         setInterval(loadLiveBuses, 20000);
         map.on('click', loadLiveBuses);
 
+        // ====================== NEXT ARRIVALS ======================
         async function getNextArrivals() {
             const stopInput = document.getElementById('stopInput').value.trim();
             const resultsDiv = document.getElementById('arrivals-results');
