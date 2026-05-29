@@ -24,9 +24,8 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             z-index: 1000;
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
             align-items: center;
+            gap: 12px;
         }
         .header {
             font-size: 1.35rem;
@@ -43,31 +42,11 @@
             border-radius: 9999px;
             white-space: nowrap;
         }
-        .filter {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            min-width: 220px;
-        }
-        select {
-            padding: 10px 14px;
-            font-size: 1rem;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            background: white;
-            flex: 1;
-        }
-        #map {
-            height: 52vh;          /* ← DIMINISHED HEIGHT */
-            width: 100%;
-        }
         #arrivals-panel {
             background: white;
             padding: 20px 16px 24px;
-            box-shadow: 0 -2px 15px rgba(0,0,0,0.1);
-            flex: 1;
-            overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 900;
         }
         .arrivals-card {
             max-width: 800px;
@@ -122,34 +101,51 @@
         .time-label { font-weight: 600; min-width: 115px; }
         .no-results { color: #666; font-style: italic; padding: 16px 0; }
 
+        /* Map container with floating dropdown */
+        .map-wrapper {
+            position: relative;
+            height: 52vh;          /* ← your diminished map height */
+            flex-shrink: 0;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .floating-filter {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: white;
+            padding: 8px 14px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+        .floating-filter label { font-weight: bold; }
+
         /* Mobile tweaks */
         @media (max-width: 640px) {
-            .top-bar { padding: 10px 12px; gap: 8px; }
+            .map-wrapper { height: 48vh; }
+            .top-bar { padding: 10px 12px; }
             .header { font-size: 1.2rem; }
-            #map { height: 48vh; }               /* even a bit shorter on phones */
             #arrivals-panel { padding: 16px 12px 20px; }
             input[type="text"], button { font-size: 1.05rem; padding: 14px 18px; }
+            .floating-filter { top: 10px; right: 10px; padding: 6px 12px; font-size: 0.95rem; }
         }
     </style>
 </head>
 <body>
-    <!-- Top Bar -->
+    <!-- Slim Top Bar -->
     <div class="top-bar">
         <div class="header">🚏 Halifax Transit Live • <span id="count">0</span> buses</div>
         <div class="status" id="status">Loading live data...</div>
-        
-        <div class="filter">
-            <label for="routeFilter"><strong>Route:</strong></label>
-            <select id="routeFilter">
-                <option value="all">All Routes</option>
-            </select>
-        </div>
     </div>
 
-    <!-- Map (now much shorter) -->
-    <div id="map"></div>
-
-    <!-- Arrivals Panel -->
+    <!-- Next Buses at Stop - NOW ABOVE THE MAP -->
     <div id="arrivals-panel">
         <div class="arrivals-card">
             <div class="arrivals-header">🕒 Next Buses at Stop</div>
@@ -158,6 +154,19 @@
                 <button onclick="getNextArrivals()">Get Arrivals</button>
             </div>
             <div id="arrivals-results" class="results"></div>
+        </div>
+    </div>
+
+    <!-- Map with floating route dropdown -->
+    <div class="map-wrapper">
+        <div id="map"></div>
+        
+        <!-- Floating Route Dropdown - Upper Right Corner -->
+        <div class="floating-filter">
+            <label for="routeFilter"><strong>Route:</strong></label>
+            <select id="routeFilter">
+                <option value="all">All Routes</option>
+            </select>
         </div>
     </div>
 
