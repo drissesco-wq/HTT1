@@ -84,7 +84,14 @@
             white-space: nowrap;
         }
         button:hover { background: #005fa3; }
-        .results { margin-top: 8px; }
+        
+        /* SCROLLABLE RESULTS - FULL LENGTH */
+        .results {
+            max-height: 45vh;           /* adjust if you want more/less space */
+            overflow-y: auto;
+            margin-top: 8px;
+            padding-right: 8px;
+        }
         .result-item {
             padding: 16px;
             border-bottom: 1px solid #eee;
@@ -102,10 +109,9 @@
         .time-label { font-weight: 600; min-width: 115px; }
         .no-results { color: #666; font-style: italic; padding: 16px 0; }
 
-        /* FIXED MAP SIZE */
         .map-wrapper {
             position: relative;
-            height: 450px;          /* ← FIXED HEIGHT (change this number if you want) */
+            height: 450px;
             flex-shrink: 0;
         }
         #map {
@@ -129,12 +135,13 @@
         .floating-filter label { font-weight: bold; }
 
         @media (max-width: 640px) {
-            .map-wrapper { height: 420px; }   /* slightly smaller on phones */
+            .map-wrapper { height: 420px; }
             .top-bar { padding: 10px 12px; }
             .header { font-size: 1.2rem; }
             #arrivals-panel { padding: 16px 12px 20px; }
             input[type="text"], button { font-size: 1.05rem; padding: 14px 18px; }
             .floating-filter { top: 10px; right: 10px; padding: 6px 12px; font-size: 0.95rem; }
+            .results { max-height: 38vh; }
         }
     </style>
 </head>
